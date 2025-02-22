@@ -5,10 +5,10 @@ esphome:
     version: "PM2105" #根据PM2.5传感器型号选择，方便后续OTA查找文件
     # version: "PM2005"
   name_add_mac_suffix: true
-  includes:
-    - "cm1106.h"
-    - "pm2105.h"  #根据PM2.5传感器型号选择
-    # - "pm2005.h"
+external_components:
+  - source:
+      type: local
+      path: components
 
 esp32:
   board: nodemcu-32s
@@ -58,28 +58,26 @@ i2c:
   scan: true
 
 sensor:
-- platform: custom
-  lambda: |-
-    auto cm1106Sensor = new CM1106Sensor(id(cm1106_uart), 10000);
-    App.register_component(cm1106Sensor);
-    return {cm1106Sensor};
-  sensors:
-  - name: "DAIKIN CO2 Sensor"
-    id: co2sensor
-    device_class: carbon_dioxide
-    state_class: measurement
-    unit_of_measurement: "ppm"
-- platform: custom
-  lambda: |-
-    auto pm25 = new pm2005();
-    App.register_component(pm25);
-    return {pm25};
-  sensors:
-  - name: "DAIKIN PM2.5 Sensor"
+- platform: cm1106
+  update_interval: 15s
+  uart_id: cm1106_uart
+  name: "CM1106 CO₂ Sensor"
+  id: co2sensor
+  device_class: carbon_dioxide
+  state_class: measurement
+  unit_of_measurement: "ppm"
+  
+- platform: pm2105
+  i2c_id: pm25_bus
+  address: 0x28
+  update_interval: 15s
+  pm2_5:
+    name: "PM2005 PM2.5"
     id: pm25sensor
-    device_class: pm25
-    state_class: measurement
-    unit_of_measurement: "µg/m³"
+  pm10:
+    name: "PM2005 PM10"
+    id: pm10sensor
+    
 - platform: sgp30
   i2c_id: th_bus
   compensation:
@@ -126,14 +124,10 @@ switch:
   icon: mdi:led-off
   id: indicator
   optimistic: true
-- platform: custom
-  lambda: |-
-    auto cm1106Calib = new CM1106CalibrateSwitch(id(cm1106_uart));
-    App.register_component(cm1106Calib);
-    return {cm1106Calib};
-  switches:
-    id: calibration
-    internal: true
+- platform: cm1106
+  uart_id: cm1106_uart
+  name: "CM1106 Calibrate"
+  id: calibration
 - platform: gpio
   pin: 4
   id: co2led
